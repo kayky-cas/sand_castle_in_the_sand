@@ -1,14 +1,14 @@
-[@@@ocaml.warning "-32"]
-[@@@ocaml.warning "-69"]
-[@@@ocaml.warning "-26"]
-[@@@ocaml.warning "-21"]
-
 module State = struct
-  type t = { mutable board : int32 array array; width : int; height : int }
+  type t = {
+    mutable board : int32 array array;
+    width : int;
+    height : int;
+    mutable sand_count : int;
+  }
 
   let create ~width ~height =
     let board = Array.make_matrix height width 0l in
-    { board; width; height }
+    { board; width; height; sand_count = 0 }
 
   let update t =
     let width = t.width in
@@ -32,13 +32,13 @@ module State = struct
 
           if i < t.height - 1 && board.(south).(j) = 0l then (
             new_board.(i).(j) <- 0l;
-            new_board.(south).(j) <- 1l)
+            new_board.(south).(j) <- cell)
           else if i < t.height - 2 then
             if board.(south + 1).(!side) = 0l then (
               new_board.(i).(j) <- 0l;
-              new_board.(south + 1).(!side) <- 1l)
-            else new_board.(i).(j) <- 1l
-          else new_board.(i).(j) <- 1l)
+              new_board.(south + 1).(!side) <- cell)
+            else new_board.(i).(j) <- cell
+          else new_board.(i).(j) <- cell)
       done
     done;
 
@@ -63,8 +63,10 @@ module State = struct
         let x = j * width in
         let y = i * height in
         if cell = 1l then
-          Raylib.draw_rectangle x y width height Raylib.Color.orange
+          Raylib.draw_rectangle x y width height Raylib.Color.yellow
         else if cell = 2l then
+          Raylib.draw_rectangle x y width height Raylib.Color.orange
+        else if cell = 3l then
           Raylib.draw_rectangle x y width height Raylib.Color.red
       done
     done
@@ -78,12 +80,21 @@ module State = struct
       let x = Raylib.get_mouse_x () / width in
       let y = Raylib.get_mouse_y () / height in
 
+      let tird = t.width * (t.height / 3) in
+
       for i = -3 to 3 do
         for j = -3 to 3 do
           let x = x + i in
           let y = y + j in
-          if x >= 0 && x < t.width && y >= 0 && y < t.height then
-            t.board.(y).(x) <- 1l
+          if
+            x >= 0 && x < t.width && y >= 0 && y < t.height
+            && t.board.(y).(x) = 0l
+          then (
+            t.sand_count <- t.sand_count + 1;
+            t.board.(y).(x) <-
+              (if t.sand_count < tird then 1l
+               else if t.sand_count < tird * 2 then 2l
+               else 3l))
         done
       done
 end
@@ -104,5 +115,5 @@ let rec loop s =
 
 let () =
   setup ();
-  loop (State.create ~width:120 ~height:120);
+  let _ = loop (State.create ~width:120 ~height:120) in
   Raylib.close_window ()

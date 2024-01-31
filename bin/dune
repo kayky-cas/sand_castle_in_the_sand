@@ -1,0 +1,4 @@
+(executable
+ (public_name sand_castle_in_the_sand)
+ (name main)
+ (libraries sand_castle_in_the_sand raylib))
